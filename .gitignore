@@ -1,0 +1,10 @@
+# Compiled Java
+*.class
+
+# JDK/JRE if placed locally (never commit these)
+jdk/
+jre/
+*.jdk/
+
+# macOS
+.DS_Store
