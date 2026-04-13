@@ -28,7 +28,7 @@ class Explosion {
     }
 
     void draw(Graphics2D g2) {
-        float ratio = life / 30f;
+        float ratio = life / 30f; // controls explosion fade below  10 game frezes above 90 explosions dont look the same f need to be there
         for (int[] p : particles) {
             int r = 255;
             int gr = (int)(ratio * 200);

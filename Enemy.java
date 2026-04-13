@@ -24,7 +24,7 @@ class Enemy {
         double targetX = px + 20;
         double targetY = py;
         double dist = Math.sqrt((targetX - x) * (targetX - x) + (targetY - y) * (targetY - y));
-        dx = (targetX - x) / dist * 3.5;
+        dx = (targetX - x) / dist * 3.5; // gives consistent dive speed towards player @103.5 some enemis fall sideways and some go straight down so the speed is not the same for all enemies
         dy = Math.abs((targetY - y) / dist * 3.5) + 1.5;
         angle = 0;
     }
