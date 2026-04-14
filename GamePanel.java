@@ -1,26 +1,56 @@
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
-import java.util.List;
+import java.util.List; 
+import javax.swing.*;
 
 class GamePanel extends JPanel implements ActionListener, KeyListener {
-    static final int W = 800, H = 700;
-    static final int PLAYER_SPEED = 5;
-    static final int BULLET_SPEED = 10;
-    static final int ENEMY_BULLET_SPEED = 4;
-    static final int FPS = 60;
+    static final int W = 800, H = 700; /*static final creates variables that are constants and 
+                                         cannot be changed after initialization. 
+                                         W is the width of the game panel. H is the height of the game panel. 
+                                       */ 
+    static final int PLAYER_SPEED = 5; /*player speed is the number of pixels the 
+                                         player moves per frame when a movement key is pressed.
+                                       */
+    static final int BULLET_SPEED = 10; /*bullet speed is the number of pixels the player's bullets move 
+                                          upwards per frame. Enemy bullets have a separate speed defined 
+                                          in ENEMY_BULLET_SPEED. This allows for different speeds for player 
+                                          and enemy projectiles, adding variety to the gameplay. 
+                                        */
+    static final int ENEMY_BULLET_SPEED = 4;/*enemy bullet speed is the number of pixels 
+                                            the enemy's bullets move downwards per frame. 
+                                            */
+    static final int FPS = 60;/*frames per second  speeds up entire game if fps number is increased */
 
     // Game states
-    enum State { MENU, PLAYING, GAME_OVER, WIN }
+    enum State {
+        MENU, PLAYING, GAME_OVER, WIN
+    } /*State is an enumeration that defines 
+        the different states the game can be in. 
+       */
 
-    State state = State.MENU;
-    javax.swing.Timer timer;
-    Random rng = new Random();
-
+    State state = State.MENU; /*state is a variable that holds the current state of the game. 
+                                It starts in the MENU state and changes based on player actions and game events. 
+                              */
+                            
+    javax.swing.Timer timer; /*timer is a Swing Timer that triggers the actionPerformed method at regular 
+                                intervals defined by FPS. This is the main game loop that updates the game 
+                                state and repaints the screen. 
+                             */                            
+    Random rng = new Random(); /*rng is a Random object used for generating random numbers throughout the game, 
+                                  such as for enemy behavior and explosion effects. 
+                                */
     // Player
-    int px = W / 2 - 20, py = H - 80;
-    boolean left, right, shooting;
+    int px = W / 2 - 20, py = H - 80; /*px and py are the x and y coordinates of the player's ship. 
+                                        The player starts near the bottom center of the screen. 
+                                        higher the number the closer the player i to the enemy
+                                        */
+    boolean left, right,
+            shooting; /*left, right, and shooting are boolean variables that track whether the player 
+                      is currently pressing the left arrow key, right arrow key, or space bar to shoot. 
+                      These variables are updated in the keyPressed and keyReleased methods and used in 
+                      the update method to control player movement and shooting. 
+                      */
     int shootCooldown = 0;
     int lives = 3;
     int score = 0;
