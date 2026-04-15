@@ -51,11 +51,16 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
                       These variables are updated in the keyPressed and keyReleased methods and used in 
                       the update method to control player movement and shooting. 
                       */
-    int shootCooldown = 0;
-    int lives = 3;
-    int score = 0;
-    int level = 1;
-
+    int shootCooldown = 0; /*shootCooldown is an integer that tracks the cooldown time between player shots. 
+                            When the player shoots, shootCooldown is set to a certain value (e.g., 18), 
+                            and the player cannot shoot again until shootCooldown counts down to 0. 
+                            This prevents the player from shooting too rapidly and adds a strategic element to timing shots. 
+                          */
+    int lives = 3; /* lives is an int that tracks the number of lives can be adjusted to give player more or less lives */
+    int score = 0; /* score is an int that tracks the player's score */
+    int level = 1; /* level is an int that tracks the current level */
+    /*also the int are just variables that hold integer values, these names 
+    could be anything but its good coding practice the give functional names */
     // Bullets
     List<int[]> playerBullets = new ArrayList<>();
     List<int[]> enemyBullets  = new ArrayList<>();
