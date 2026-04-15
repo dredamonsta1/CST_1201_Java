@@ -56,7 +56,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
                             and the player cannot shoot again until shootCooldown counts down to 0. 
                             This prevents the player from shooting too rapidly and adds a strategic element to timing shots. 
                           */
-    int lives = 3; /* lives is an int that tracks the number of lives can be adjusted to give player more or less lives */
+    int lives = 3; /* lives is an int that tracks the number of lives */
     int score = 0; /* score is an int that tracks the player's score */
     int level = 1; /* level is an int that tracks the current level */
     /*also the int are just variables that hold integer values, these names 
@@ -346,7 +346,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         g2.setColor(new Color(0, 220, 255));
         g2.drawString("LEVEL: " + level, W / 2 - 40, 30);
         g2.setColor(new Color(255, 80, 80));
-        g2.drawString("LIVES: " + "♥ ".repeat(lives), W - 160, 30);
+        g2.drawString("LIVES: " + "♥ ".repeat(lives), W - 160, 30); /*  */
 
         // Divider line
         g2.setColor(new Color(50, 50, 80));
@@ -385,16 +385,16 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
 
         // Screen flash on hit
         if (hitFlash > 0) {
-            int alpha = Math.min(80, hitFlash * 3);
-            g2.setColor(new Color(255, 80, 80, alpha));
-            g2.fillRect(0, 0, W, H);
+            int alpha = Math.min(80, hitFlash * 3); /*larger thehitFlach * number thelonger the screen flashes red */
+            g2.setColor(new Color(255, 80, 80, alpha)); /* controls the color of the flash */
+            g2.fillRect(0, 0, W, H); /*the numbers control section of screen that will be filled */
         }
     }
 
     void drawPlayer(Graphics2D g2, int x, int y) {
         // Body
-        int[] bx = {x+20, x+5,  x+2,  x+18, x+22, x+38, x+35};
-        int[] by = {y,    y+14, y+38, y+38, y+38, y+38, y+14};
+        int[] bx = {x+20, x+5,  x+2,  x+18, x+22, x+38, x+35};/*control look of the ships body x-coordinates */
+        int[] by = {y,    y+14, y+38, y+38, y+38, y+38, y+14}; /* this is the y-coordinates for the ship's body */
         g2.setColor(new Color(30, 140, 255));
         g2.fillPolygon(bx, by, 7);
 
@@ -527,7 +527,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         if (state == State.MENU) {
             if (k == KeyEvent.VK_ENTER) {
                 state = State.PLAYING;
-                score = 0; lives = 3; level = 1;
+                score = 0; lives = 3; level = 1; /*control the number of lives initially as the game starts */
                 spawnLevel();
             }
         } else if (state == State.PLAYING) {
@@ -537,7 +537,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         } else if (state == State.GAME_OVER) {
             if (k == KeyEvent.VK_ENTER) {
                 state = State.PLAYING;
-                score = 0; lives = 3; level = 1;
+                score = 0; lives = 3; level = 1; /*control the number of lives after game over and restarts */
                 spawnLevel();
             }
         }
