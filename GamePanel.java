@@ -139,15 +139,22 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         if (hitFlash > 0) hitFlash--;
 
         // Entrance animation
-        if (entranceTimer > 0) {
+        if (entranceTimer > -50) { /* the 0 seems to control the start location of 
+                                    the enemy, if set to -150 the enemy very close to player */
             entranceTimer--;
             for (Enemy en : enemies) en.y += 2;
             return; // don't do game logic yet
         }
 
         // Move player
-        if (left  && px > 10)       px -= PLAYER_SPEED;
-        if (right && px < W - 50)   px += PLAYER_SPEED;
+        if (left && px > 10)
+            px -= PLAYER_SPEED; /*the number to the right of the > operator is the 
+                                amount of pixels the player can go to the left */
+        if (right && px < W - 50)
+            px += PLAYER_SPEED; /*the number to the far right controls the distance the player 
+                                can move to the right side of screen, the lower the number the 
+                                further to the right or pixel location.  
+                                */
 
         // Shoot
         if (shooting && shootCooldown <= 0) {
