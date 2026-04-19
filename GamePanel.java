@@ -142,7 +142,9 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         if (entranceTimer > -50) { /* the 0 seems to control the start location of 
                                     the enemy, if set to -150 the enemy very close to player */
             entranceTimer--;
-            for (Enemy en : enemies) en.y += 2;
+            for (Enemy en : enemies) en.y += 2;/* this enhanced for loop controls where enemy starts, 
+                          lower the number higher the enemy starts, higher the lower and also starts 
+                          ememy too low and ends game immediately */
             return; // don't do game logic yet
         }
 
