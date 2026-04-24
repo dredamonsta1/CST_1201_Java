@@ -109,22 +109,26 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
                                                                   smaller the number to the right of the comma the faster the 
                                                                   enemy goes, the larger the number to the left of the comma 
                                                                   the slower the enemy goes */
-        entranceTimer = 180;
-        px = W / 2 - 20;
+        entranceTimer = 180; /* controls the duration of the entrance animation */
+        px = W / 2 - 20; /* controls the initial x position of the player */
 
         // 4 rows of enemies, 10 per row
-        int cols = 10, rows = 4;
-        int startX = 80, startY = -200;
+        int cols = 10, rows = 4; /* controls the number of columns and rows of enemies */
+        int startX = 80, startY = -200; /* controls the starting x and y position of the enemies, 
+                                    lower the startY the higher the enemy starts, higher the startY the lower the enemy starts */
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
-                int type = (r == 0) ? 2 : (r == 1) ? 1 : 0;
-                enemies.add(new Enemy(startX + c * 65, startY - r * 55, type));
+                int type = (r == 0) ? 2 : (r == 1) ? 1 : 0; /* controls the type of enemy in each row, 
+                                                the top row will be type 2, the second row will be type 1, and the bottom two rows will be type 0 */
+                enemies.add(new Enemy(startX + c * 65, startY - r * 55, type)); /* controls the spacing between enemies, 
+                                                lower the number to the right of c the closer the enemies are horizontally, 
+                                                higher the number to the right of r the closer the enemies are vertically */
             }
         }
     }
 
     @Override
-    public void actionPerformed(ActionEvent e) {
+    public void actionPerformed(ActionEvent e) { 
         if (state == State.PLAYING) update();
         repaint();
     }
@@ -136,7 +140,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
             if (s[1] > H) { s[1] = 0; s[0] = rng.nextInt(W); }
         }
 
-        if (hitFlash > 0) hitFlash--;
+        if (hitFlash > 0) hitFlash--; /* controls the duration of the hit flash effect */
 
         // Entrance animation
         if (entranceTimer > -50) { /* the 0 seems to control the start location of 
