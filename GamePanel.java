@@ -104,7 +104,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         enemyBullets.clear();
         playerBullets.clear();
         explosions.clear();
-        enemyDir = 1;
+        enemyDir = 01;
         enemyMoveInterval = Math.max(10, 40 - (level - 1) * 5); /* controlls the speed in which the enemy goes side to side, 
                                                                   smaller the number to the right of the comma the faster the 
                                                                   enemy goes, the larger the number to the left of the comma 
