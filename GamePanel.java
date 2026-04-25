@@ -163,7 +163,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
                                 */
 
         // Shoot
-        if (shooting && shootCooldown <= 0) {
+        if (shooting && shootCooldown <= 0) {  //when shooting  && shot cool down is >= 0 there is no delay between shots 
             playerBullets.add(new int[]{px + 19, py});
             shootCooldown = 18;
         }
