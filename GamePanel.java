@@ -164,13 +164,21 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
 
         // Shoot
         if (shooting && shootCooldown <= 0) {  //when shooting  && shot cool down is >= 0 there is no delay between shots 
-            playerBullets.add(new int[]{px + 19, py});
-            shootCooldown = 18;
+            playerBullets.add(new int[]{px + 19, py}); /*the number to the right of px controls the x position of the bullet when shot, 
+                                        lower the number the closer the bullet is to the left side of the ship, 
+                                        higher the number the closer the bullet is to the right side of the ship */
+            shootCooldown = 18; /*controls the cooldown time between shots, 
+                                lower the number the faster the player can shoot, higher the number the slower the player can shoot */
         }
         if (shootCooldown > 0) shootCooldown--;
 
         // Move player bullets
-        playerBullets.removeIf(b -> { b[1] -= BULLET_SPEED; return b[1] < 0; });
+        playerBullets.removeIf(b -> {
+            b[1] -= BULLET_SPEED;
+            return b[1] < 0;
+        }); /*this is a lambda function in javascript would be called an arrow function, 
+        b is the parameter that represents each bullet in the playerBullets list.
+            */
 
         // Move enemy bullets
         enemyBullets.removeIf(b -> { b[1] += ENEMY_BULLET_SPEED; return b[1] > H; });
