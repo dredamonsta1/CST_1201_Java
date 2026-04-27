@@ -188,7 +188,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         if (enemyMoveTimer >= enemyMoveInterval) {
             enemyMoveTimer = 0;
             boolean hitWall = false;
-            for (Enemy en : enemies) {
+            for (Enemy en : enemies) { // only move non-diving enemies left/right
                 if (!en.diving) {
                     en.x += enemyDir * 18;
                     if (en.x <= 20 || en.x >= W - 60) hitWall = true;
@@ -196,7 +196,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
             }
             if (hitWall) {
                 enemyDir *= -1;
-                for (Enemy en : enemies) { if (!en.diving) en.y += 12; }
+                for (Enemy en : enemies) { if (!en.diving) en.y += 12; } // when hitting wall move enemies down a row
             }
         }
 
@@ -209,7 +209,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
             enemyDiveTimer = 0;
             enemyDiveCooldown = Math.max(60, 180 - level * 15);
             List<Enemy> candidates = new ArrayList<>();
-            for (Enemy en : enemies) if (!en.diving) candidates.add(en);
+            for (Enemy en : enemies) if (!en.diving) candidates.add(en); // only non-diving enemies can start diving
             if (!candidates.isEmpty()) {
                 candidates.get(rng.nextInt(candidates.size())).startDive(px, py);
             }
@@ -251,7 +251,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         }
 
         // Collision: diving enemies vs player
-        for (Enemy en : enemies) {
+        for (Enemy en : enemies) { // check collision with player for diving enemies
             if (en.x + 10 < px + 38 && en.x + 26 > px &&
                 en.y + 10 < py + 38 && en.y + 26 > py) {
                 explosions.add(new Explosion(en.x + 18, en.y + 17));
