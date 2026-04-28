@@ -193,7 +193,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         }
 
         // Player 1 shoot
-        if (shooting && shootCooldown <= 0) {  //when shooting  && shot cool down is >= 0 there is no delay between shots
+        if (lives > 0 && shooting && shootCooldown <= 0) {  //when shooting  && shot cool down is >= 0 there is no delay between shots
             playerBullets.add(new int[]{px + 19, py, 1}); /*the number to the right of px controls the x position of the bullet when shot,
                                         lower the number the closer the bullet is to the left side of the ship,
                                         higher the number the closer the bullet is to the right side of the ship.
