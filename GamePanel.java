@@ -24,9 +24,10 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     // Game states
     enum State {
-        MENU, PLAYING, GAME_OVER, WIN
+        MENU, SELECT, PLAYING, GAME_OVER, WIN
     } /*State is an enumeration that defines
         the different states the game can be in.
+        SELECT is the player count selection screen shown after the main menu.
        */
 
     State state = State.MENU; /*state is a variable that holds the current state of the game.
@@ -75,6 +76,10 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
                              */
     int lives2 = 3; /* lives2 tracks the number of lives for player 2 */
     int score2 = 0; /* score2 tracks player 2's score separately from player 1 */
+
+    int playerCount = 1; /* playerCount holds the number of human players (1 or 2).
+                           Set on the SELECT screen before the game starts.
+                           Controls whether P2 logic runs during gameplay. */
 
     int level = 1; /* level is an int that tracks the current level */
     /*also the int are just variables that hold integer values, these names
@@ -186,8 +191,8 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
                                 further to the right or pixel location.
                                 */
 
-        // Move player 2 (only if still alive)
-        if (lives2 > 0) {
+        // Move player 2 (only in 2-player mode and only if still alive)
+        if (playerCount == 2 && lives2 > 0) {
             if (left2  && px2 > 10)     px2 -= PLAYER_SPEED; /* A key moves player 2 left */
             if (right2 && px2 < W - 50) px2 += PLAYER_SPEED; /* D key moves player 2 right */
         }
@@ -203,13 +208,13 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         }
         if (shootCooldown > 0) shootCooldown--;
 
-        // Player 2 shoot (only if still alive)
-        if (lives2 > 0 && shooting2 && shootCooldown2 <= 0) {
+        // Player 2 shoot (only in 2-player mode and only if still alive)
+        if (playerCount == 2 && lives2 > 0 && shooting2 && shootCooldown2 <= 0) {
             playerBullets.add(new int[]{px2 + 19, py2, 2}); /* W key fires player 2's bullet.
                                                                 The 2 marks this bullet as belonging to player 2 for scoring. */
             shootCooldown2 = 18; /* same cooldown mechanic as player 1 */
         }
-        if (shootCooldown2 > 0) shootCooldown2--;
+        if (playerCount == 2 && shootCooldown2 > 0) shootCooldown2--;
 
         // Move player bullets
         playerBullets.removeIf(b -> {
@@ -250,16 +255,17 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
             List<Enemy> candidates = new ArrayList<>();
             for (Enemy en : enemies) if (!en.diving) candidates.add(en); // only non-diving enemies can start diving
             if (!candidates.isEmpty()) {
-                // Pick a random alive player to dive at.
-                // If both are alive, randomly choose one so each player stays under threat.
+                // Pick which player to dive at.
+                // In 1-player mode always target P1.
+                // In 2-player mode randomly pick an alive player so both stay under threat.
                 int targetX, targetY;
-                if (lives > 0 && lives2 > 0) {
+                if (playerCount == 2 && lives > 0 && lives2 > 0) {
                     if (rng.nextBoolean()) { targetX = px;  targetY = py;  }
                     else                   { targetX = px2; targetY = py2; }
-                } else if (lives > 0) {
-                    targetX = px;  targetY = py;  /* only player 1 alive, target them */
-                } else {
+                } else if (playerCount == 2 && lives2 > 0 && lives <= 0) {
                     targetX = px2; targetY = py2; /* only player 2 alive, target them */
+                } else {
+                    targetX = px;  targetY = py;  /* 1-player mode, or only player 1 alive */
                 }
                 candidates.get(rng.nextInt(candidates.size())).startDive(targetX, targetY);
             }
@@ -303,8 +309,8 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
                 loseLife1();
                 hit = true;
             }
-            // Check player 2 (only if still alive and bullet not already consumed)
-            if (!hit && lives2 > 0 && b[0] >= px2 && b[0] <= px2 + 40 && b[1] >= py2 && b[1] <= py2 + 40) {
+            // Check player 2 (only in 2-player mode, only if still alive, and bullet not already consumed)
+            if (!hit && playerCount == 2 && lives2 > 0 && b[0] >= px2 && b[0] <= px2 + 40 && b[1] >= py2 && b[1] <= py2 + 40) {
                 ebi.remove();
                 loseLife2();
             }
@@ -321,8 +327,8 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
                 loseLife1();
                 break;
             }
-            // Check against player 2
-            if (lives2 > 0 &&
+            // Check against player 2 (only in 2-player mode)
+            if (playerCount == 2 && lives2 > 0 &&
                 en.x + 10 < px2 + 38 && en.x + 26 > px2 &&
                 en.y + 10 < py2 + 38 && en.y + 26 > py2) {
                 explosions.add(new Explosion(en.x + 18, en.y + 17));
@@ -354,8 +360,9 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
     void loseLife1() {
         lives--;
         hitFlash = 45;
-        /* game ends only when BOTH players are out of lives — if one dies the other keeps playing */
-        if (lives <= 0 && lives2 <= 0) state = State.GAME_OVER;
+        /* in 1-player mode the game ends when P1 runs out of lives.
+           in 2-player mode the game ends only when BOTH players are out of lives. */
+        if (lives <= 0 && (playerCount == 1 || lives2 <= 0)) state = State.GAME_OVER;
     }
 
     void loseLife2() {
@@ -384,6 +391,8 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
 
         if (state == State.MENU) {
             drawMenu(g2);
+        } else if (state == State.SELECT) {
+            drawSelect(g2); /* player count selection screen shown after the main menu */
         } else if (state == State.PLAYING || state == State.WIN) {
             drawGame(g2);
         } else if (state == State.GAME_OVER) {
@@ -419,17 +428,12 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
             g2.drawString(s, (W - g2.getFontMetrics().stringWidth(s)) / 2, 370);
         }
 
-        // Controls — P1 on the left column, P2 on the right column
+        // Controls hint — full per-player controls are shown on the SELECT screen
         g2.setFont(new Font("Courier New", Font.PLAIN, 15));
-        g2.setColor(new Color(30, 140, 255)); /* player 1 controls shown in blue to match their ship */
-        String[] p1ctrl = {"P1 CONTROLS:", "\u2190 \u2192 : MOVE", "SPACE : FIRE"};
-        for (int i = 0; i < p1ctrl.length; i++) {
-            g2.drawString(p1ctrl[i], W/2 - 220, 430 + i * 28);
-        }
-        g2.setColor(new Color(255, 180, 0)); /* player 2 controls shown in gold to match their ship */
-        String[] p2ctrl = {"P2 CONTROLS:", "A D : MOVE", "W : FIRE"};
-        for (int i = 0; i < p2ctrl.length; i++) {
-            g2.drawString(p2ctrl[i], W/2 + 60, 430 + i * 28);
+        g2.setColor(new Color(180, 180, 180));
+        String[] ctrl = {"\u2190 \u2192 : MOVE", "SPACE : FIRE"};
+        for (int i = 0; i < ctrl.length; i++) {
+            g2.drawString(ctrl[i], (W - g2.getFontMetrics().stringWidth(ctrl[i])) / 2, 430 + i * 28);
         }
 
         // Draw sample enemy ship types as preview
@@ -446,24 +450,115 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         g2.drawString("80",  W/2 + 92, 610);
     }
 
+    void drawSelect(Graphics2D g2) {
+        /* draws the player count selection screen.
+           playerCount holds the current highlighted choice (1 or 2).
+           Left/Right arrow keys or 1/2 keys change the selection.
+           Enter confirms and starts the game. */
+
+        // Title
+        g2.setFont(new Font("Courier New", Font.BOLD, 38));
+        String title = "SELECT PLAYERS";
+        FontMetrics fm = g2.getFontMetrics();
+        g2.setColor(new Color(0, 220, 255));
+        g2.drawString(title, (W - fm.stringWidth(title)) / 2, 200);
+
+        // Divider under title
+        g2.setColor(new Color(50, 50, 80));
+        g2.drawLine(W/2 - 200, 215, W/2 + 200, 215);
+
+        // Option boxes — highlight the selected one brighter
+        int opt1X = W/2 - 220, opt2X = W/2 + 40, optY = 300;
+
+        // 1 PLAYER option
+        boolean p1sel = (playerCount == 1); /* true when 1-player is the current selection */
+        g2.setColor(p1sel ? new Color(30, 140, 255) : new Color(60, 60, 90)); /* bright blue if selected, dim if not */
+        g2.fillRoundRect(opt1X, optY - 40, 160, 80, 12, 12);
+        g2.setColor(p1sel ? Color.WHITE : new Color(120, 120, 140));
+        g2.setFont(new Font("Courier New", Font.BOLD, 22));
+        fm = g2.getFontMetrics();
+        g2.drawString("1 PLAYER", opt1X + (160 - fm.stringWidth("1 PLAYER")) / 2, optY + 8);
+
+        // 2 PLAYERS option
+        boolean p2sel = (playerCount == 2); /* true when 2-player is the current selection */
+        g2.setColor(p2sel ? new Color(200, 140, 0) : new Color(60, 60, 90)); /* bright gold if selected, dim if not */
+        g2.fillRoundRect(opt2X, optY - 40, 160, 80, 12, 12);
+        g2.setColor(p2sel ? Color.WHITE : new Color(120, 120, 140));
+        g2.setFont(new Font("Courier New", Font.BOLD, 22));
+        fm = g2.getFontMetrics();
+        g2.drawString("2 PLAYERS", opt2X + (160 - fm.stringWidth("2 PLAYERS")) / 2, optY + 8);
+
+        // Arrow indicator under the selected box
+        g2.setFont(new Font("Courier New", Font.BOLD, 18));
+        g2.setColor(Color.WHITE);
+        String arrow = "\u25B2"; /* up-pointing triangle acts as a selection pointer */
+        fm = g2.getFontMetrics();
+        if (p1sel) g2.drawString(arrow, opt1X + (160 - fm.stringWidth(arrow)) / 2, optY + 55);
+        else       g2.drawString(arrow, opt2X + (160 - fm.stringWidth(arrow)) / 2, optY + 55);
+
+        // Navigation hint
+        g2.setFont(new Font("Courier New", Font.PLAIN, 14));
+        g2.setColor(new Color(180, 180, 180));
+        String nav = "\u2190 \u2192  OR  1 / 2  TO SWITCH";
+        fm = g2.getFontMetrics();
+        g2.drawString(nav, (W - fm.stringWidth(nav)) / 2, optY + 90);
+
+        // Controls preview — show only relevant controls for the chosen mode
+        g2.setFont(new Font("Courier New", Font.PLAIN, 14));
+        int ctrlY = 460;
+        g2.setColor(new Color(30, 140, 255)); /* P1 controls always shown in blue */
+        String[] p1ctrl = {"P1:  \u2190 \u2192 MOVE   SPACE FIRE"};
+        for (int i = 0; i < p1ctrl.length; i++)
+            g2.drawString(p1ctrl[i], (W - g2.getFontMetrics().stringWidth(p1ctrl[i])) / 2, ctrlY + i * 24);
+
+        if (playerCount == 2) {
+            /* P2 controls only appear when 2-player mode is selected */
+            g2.setColor(new Color(255, 180, 0)); /* P2 controls in gold */
+            String[] p2ctrl = {"P2:  A D MOVE   W FIRE"};
+            for (int i = 0; i < p2ctrl.length; i++)
+                g2.drawString(p2ctrl[i], (W - g2.getFontMetrics().stringWidth(p2ctrl[i])) / 2, ctrlY + 28 + i * 24);
+        }
+
+        // Blinking confirm prompt
+        if ((System.currentTimeMillis() / 600) % 2 == 0) {
+            g2.setFont(new Font("Courier New", Font.BOLD, 20));
+            g2.setColor(Color.WHITE);
+            String s = "PRESS ENTER TO CONFIRM";
+            fm = g2.getFontMetrics();
+            g2.drawString(s, (W - fm.stringWidth(s)) / 2, 560);
+        }
+    }
+
     void drawGame(Graphics2D g2) {
-        // HUD — P1 info on the left, level in the center, P2 info on the right
+        // HUD — layout adapts to player count.
+        // In 1-player mode: score on left, level center, lives on right.
+        // In 2-player mode: P1 info left, level center, P2 info right.
         g2.setFont(new Font("Courier New", Font.BOLD, 16));
-        g2.setColor(new Color(30, 140, 255)); /* player 1 HUD drawn in blue to match their ship */
-        g2.drawString("P1 SCORE: " + score, 10, 20);
-        g2.drawString("P1: " + (lives > 0 ? "\u2665 ".repeat(lives).trim() : "DEAD"), 10, 38);
+        FontMetrics fm = g2.getFontMetrics();
+
+        if (playerCount == 1) {
+            /* 1-player HUD — simpler layout matching the original single-player style */
+            g2.setColor(new Color(255, 220, 0));
+            g2.drawString("SCORE: " + score, 20, 30);
+            g2.setColor(new Color(255, 80, 80));
+            String livesStr = "LIVES: " + (lives > 0 ? "\u2665 ".repeat(lives).trim() : "---");
+            g2.drawString(livesStr, W - fm.stringWidth(livesStr) - 20, 30);
+        } else {
+            /* 2-player HUD */
+            g2.setColor(new Color(30, 140, 255)); /* player 1 HUD drawn in blue to match their ship */
+            g2.drawString("P1 SCORE: " + score, 10, 20);
+            g2.drawString("P1: " + (lives > 0 ? "\u2665 ".repeat(lives).trim() : "DEAD"), 10, 38);
+
+            g2.setColor(new Color(255, 180, 0)); /* player 2 HUD drawn in gold to match their ship */
+            String p2score = "P2 SCORE: " + score2;
+            String p2lives = "P2: " + (lives2 > 0 ? "\u2665 ".repeat(lives2).trim() : "DEAD");
+            g2.drawString(p2score, W - fm.stringWidth(p2score) - 10, 20);
+            g2.drawString(p2lives, W - fm.stringWidth(p2lives) - 10, 38);
+        }
 
         g2.setColor(new Color(0, 220, 255));
         String lvl = "LEVEL: " + level;
-        FontMetrics fm = g2.getFontMetrics();
         g2.drawString(lvl, (W - fm.stringWidth(lvl)) / 2, 30);
-
-        g2.setColor(new Color(255, 180, 0)); /* player 2 HUD drawn in gold to match their ship */
-        String p2score = "P2 SCORE: " + score2;
-        String p2lives = "P2: " + (lives2 > 0 ? "\u2665 ".repeat(lives2).trim() : "DEAD");
-        fm = g2.getFontMetrics();
-        g2.drawString(p2score, W - fm.stringWidth(p2score) - 10, 20);
-        g2.drawString(p2lives, W - fm.stringWidth(p2lives) - 10, 38);
 
         // Divider line
         g2.setColor(new Color(50, 50, 80));
@@ -478,8 +573,8 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
             }
         }
 
-        // Player 2 ship (if alive)
-        if (lives2 > 0) {
+        // Player 2 ship (only in 2-player mode and only if alive)
+        if (playerCount == 2 && lives2 > 0) {
             if (hitFlash2 > 0 && (hitFlash2 / 5) % 2 == 0) {
                 // Flicker on hit — skip drawing this frame to create the flicker effect
             } else {
@@ -515,7 +610,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
             g2.setColor(new Color(255, 80, 80, alpha)); /* controls the color of the flash */
             g2.fillRect(0, 0, W, H); /*the numbers control section of screen that will be filled */
         }
-        if (hitFlash2 > 0) {
+        if (playerCount == 2 && hitFlash2 > 0) {
             int alpha = Math.min(80, hitFlash2 * 3); /* same flash mechanic for player 2 */
             g2.setColor(new Color(255, 80, 80, alpha));
             g2.fillRect(0, 0, W, H);
@@ -642,23 +737,31 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         g2.setColor(new Color(255, 40, 40));
         g2.drawString(go, tx, 260);
 
-        // Show each player's final score separately
         g2.setFont(new Font("Courier New", Font.BOLD, 24));
         fm = g2.getFontMetrics();
-        g2.setColor(new Color(30, 140, 255)); /* player 1 score in blue */
-        String p1sc = "P1 SCORE: " + score;
-        g2.drawString(p1sc, (W - fm.stringWidth(p1sc)) / 2, 325);
 
-        g2.setColor(new Color(255, 180, 0)); /* player 2 score in gold */
-        String p2sc = "P2 SCORE: " + score2;
-        g2.drawString(p2sc, (W - fm.stringWidth(p2sc)) / 2, 360);
+        if (playerCount == 1) {
+            /* 1-player game over — show single final score */
+            g2.setColor(new Color(255, 220, 0));
+            String sc = "FINAL SCORE: " + score;
+            g2.drawString(sc, (W - fm.stringWidth(sc)) / 2, 350);
+        } else {
+            /* 2-player game over — show each player's score and declare a winner */
+            g2.setColor(new Color(30, 140, 255)); /* player 1 score in blue */
+            String p1sc = "P1 SCORE: " + score;
+            g2.drawString(p1sc, (W - fm.stringWidth(p1sc)) / 2, 325);
 
-        // Winner callout — compares both scores to declare a winner
-        g2.setFont(new Font("Courier New", Font.BOLD, 22));
-        fm = g2.getFontMetrics();
-        String winner = (score > score2) ? "P1 WINS!" : (score2 > score) ? "P2 WINS!" : "TIE GAME!";
-        g2.setColor(new Color(255, 220, 0));
-        g2.drawString(winner, (W - fm.stringWidth(winner)) / 2, 400);
+            g2.setColor(new Color(255, 180, 0)); /* player 2 score in gold */
+            String p2sc = "P2 SCORE: " + score2;
+            g2.drawString(p2sc, (W - fm.stringWidth(p2sc)) / 2, 360);
+
+            // Winner callout — compares both scores to declare a winner
+            g2.setFont(new Font("Courier New", Font.BOLD, 22));
+            fm = g2.getFontMetrics();
+            String winner = (score > score2) ? "P1 WINS!" : (score2 > score) ? "P2 WINS!" : "TIE GAME!";
+            g2.setColor(new Color(255, 220, 0));
+            g2.drawString(winner, (W - fm.stringWidth(winner)) / 2, 400);
+        }
 
         if ((System.currentTimeMillis() / 600) % 2 == 0) {
             g2.setFont(new Font("Courier New", Font.BOLD, 20));
@@ -673,6 +776,14 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         int k = e.getKeyCode();
         if (state == State.MENU) {
             if (k == KeyEvent.VK_ENTER) {
+                state = State.SELECT; /* Enter on the menu goes to player count selection, not straight to game */
+            }
+        } else if (state == State.SELECT) {
+            // Left/Right arrows or 1/2 keys toggle the player count selection
+            if (k == KeyEvent.VK_LEFT  || k == KeyEvent.VK_1) playerCount = 1;
+            if (k == KeyEvent.VK_RIGHT || k == KeyEvent.VK_2) playerCount = 2;
+            if (k == KeyEvent.VK_ENTER) {
+                // Confirm selection and start the game
                 state = State.PLAYING;
                 score = 0; lives = 3; score2 = 0; lives2 = 3; level = 1; /*control the number of lives initially as the game starts */
                 spawnLevel();
@@ -682,15 +793,13 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
             if (k == KeyEvent.VK_LEFT)  left = true;
             if (k == KeyEvent.VK_RIGHT) right = true;
             if (k == KeyEvent.VK_SPACE) shooting = true;
-            // Player 2 controls
+            // Player 2 controls (key presses are read but only acted on in update() when playerCount == 2)
             if (k == KeyEvent.VK_A) left2     = true;
             if (k == KeyEvent.VK_D) right2    = true;
             if (k == KeyEvent.VK_W) shooting2 = true;
         } else if (state == State.GAME_OVER) {
             if (k == KeyEvent.VK_ENTER) {
-                state = State.PLAYING;
-                score = 0; lives = 3; score2 = 0; lives2 = 3; level = 1; /*control the number of lives after game over and restarts */
-                spawnLevel();
+                state = State.SELECT; /* go back to player select so they can switch mode on replay */
             }
         }
     }
