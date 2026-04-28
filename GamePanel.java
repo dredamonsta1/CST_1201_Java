@@ -1,67 +1,88 @@
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
-import java.util.List; 
+import java.util.List;
 import javax.swing.*;
 
 class GamePanel extends JPanel implements ActionListener, KeyListener {
-    static final int W = 800, H = 700; /*static final creates variables that are constants and 
-                                         cannot be changed after initialization. 
-                                         W is the width of the game panel. H is the height of the game panel. 
-                                       */ 
-    static final int PLAYER_SPEED = 5; /*player speed is the number of pixels the 
+    static final int W = 800, H = 700; /*static final creates variables that are constants and
+                                         cannot be changed after initialization.
+                                         W is the width of the game panel. H is the height of the game panel.
+                                       */
+    static final int PLAYER_SPEED = 5; /*player speed is the number of pixels the
                                          player moves per frame when a movement key is pressed.
                                        */
-    static final int BULLET_SPEED = 10; /*bullet speed is the number of pixels the player's bullets move 
-                                          upwards per frame. Enemy bullets have a separate speed defined 
-                                          in ENEMY_BULLET_SPEED. This allows for different speeds for player 
-                                          and enemy projectiles, adding variety to the gameplay. 
+    static final int BULLET_SPEED = 10; /*bullet speed is the number of pixels the player's bullets move
+                                          upwards per frame. Enemy bullets have a separate speed defined
+                                          in ENEMY_BULLET_SPEED. This allows for different speeds for player
+                                          and enemy projectiles, adding variety to the gameplay.
                                         */
-    static final int ENEMY_BULLET_SPEED = 4;/*enemy bullet speed is the number of pixels 
-                                            the enemy's bullets move downwards per frame. 
+    static final int ENEMY_BULLET_SPEED = 4;/*enemy bullet speed is the number of pixels
+                                            the enemy's bullets move downwards per frame.
                                             */
     static final int FPS = 60;/*frames per second  speeds up entire game if fps number is increased */
 
     // Game states
     enum State {
         MENU, PLAYING, GAME_OVER, WIN
-    } /*State is an enumeration that defines 
-        the different states the game can be in. 
+    } /*State is an enumeration that defines
+        the different states the game can be in.
        */
 
-    State state = State.MENU; /*state is a variable that holds the current state of the game. 
-                                It starts in the MENU state and changes based on player actions and game events. 
+    State state = State.MENU; /*state is a variable that holds the current state of the game.
+                                It starts in the MENU state and changes based on player actions and game events.
                               */
-                            
-    javax.swing.Timer timer; /*timer is a Swing Timer that triggers the actionPerformed method at regular 
-                                intervals defined by FPS. This is the main game loop that updates the game 
-                                state and repaints the screen. 
-                             */                            
-    Random rng = new Random(); /*rng is a Random object used for generating random numbers throughout the game, 
-                                  such as for enemy behavior and explosion effects. 
+
+    javax.swing.Timer timer; /*timer is a Swing Timer that triggers the actionPerformed method at regular
+                                intervals defined by FPS. This is the main game loop that updates the game
+                                state and repaints the screen.
+                             */
+    Random rng = new Random(); /*rng is a Random object used for generating random numbers throughout the game,
+                                  such as for enemy behavior and explosion effects.
                                 */
-    // Player
-    int px = W / 2 - 20, py = H - 80; /*px and py are the x and y coordinates of the player's ship. 
-                                        The player starts near the bottom center of the screen. 
-                                        higher the number the closer the player i to the enemy
+
+    // Player 1
+    int px = W / 2 - 60, py = H - 80; /*px and py are the x and y coordinates of player 1's ship.
+                                        Player 1 starts left of center near the bottom of the screen.
+                                        higher the number the closer the player is to the enemy
                                         */
     boolean left, right,
-            shooting; /*left, right, and shooting are boolean variables that track whether the player 
-                      is currently pressing the left arrow key, right arrow key, or space bar to shoot. 
-                      These variables are updated in the keyPressed and keyReleased methods and used in 
-                      the update method to control player movement and shooting. 
+            shooting; /*left, right, and shooting are boolean variables that track whether player 1
+                      is currently pressing the left arrow key, right arrow key, or space bar to shoot.
+                      These variables are updated in the keyPressed and keyReleased methods and used in
+                      the update method to control player movement and shooting.
                       */
-    int shootCooldown = 0; /*shootCooldown is an integer that tracks the cooldown time between player shots. 
-                            When the player shoots, shootCooldown is set to a certain value (e.g., 18), 
-                            and the player cannot shoot again until shootCooldown counts down to 0. 
-                            This prevents the player from shooting too rapidly and adds a strategic element to timing shots. 
+    int shootCooldown = 0; /*shootCooldown is an integer that tracks the cooldown time between player 1's shots.
+                            When the player shoots, shootCooldown is set to a certain value (e.g., 18),
+                            and the player cannot shoot again until shootCooldown counts down to 0.
+                            This prevents the player from shooting too rapidly and adds a strategic element to timing shots.
                           */
-    int lives = 3; /* lives is an int that tracks the number of lives */
-    int score = 0; /* score is an int that tracks the player's score */
+    int lives = 3; /* lives is an int that tracks the number of lives for player 1 */
+    int score = 0; /* score is an int that tracks player 1's score */
+
+    // Player 2
+    int px2 = W / 2 + 20, py2 = H - 80; /*px2 and py2 are the x and y coordinates of player 2's ship.
+                                           Player 2 starts right of center near the bottom of the screen,
+                                           beside player 1. Same py as player 1 so both ships are level.
+                                          */
+    boolean left2, right2,
+            shooting2; /*left2, right2, and shooting2 track whether player 2 is pressing
+                         the A key (left), D key (right), or W key (shoot).
+                         Same mechanic as player 1's boolean flags.
+                        */
+    int shootCooldown2 = 0; /*shootCooldown2 tracks the cooldown between player 2's shots.
+                              Same mechanic as shootCooldown — prevents rapid fire.
+                             */
+    int lives2 = 3; /* lives2 tracks the number of lives for player 2 */
+    int score2 = 0; /* score2 tracks player 2's score separately from player 1 */
+
     int level = 1; /* level is an int that tracks the current level */
-    /*also the int are just variables that hold integer values, these names 
+    /*also the int are just variables that hold integer values, these names
     could be anything but its good coding practice the give functional names */
-    // Bullets
+
+    // Bullets — shared pool since both players shoot at the same enemies.
+    // Each bullet is stored as {x, y, playerNum} where playerNum is 1 or 2
+    // so we know which player earns the score when their bullet hits an enemy.
     List<int[]> playerBullets = new ArrayList<>();
     List<int[]> enemyBullets  = new ArrayList<>();
 
@@ -79,8 +100,9 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
     // Explosions
     List<Explosion> explosions = new ArrayList<>();
 
-    // Flash effect when hit
+    // Flash effect when hit — one per player so each hit only flashes for the player that was struck
     int hitFlash = 0;
+    int hitFlash2 = 0; /* hitFlash2 is the screen flash timer for player 2, same mechanic as hitFlash */
 
     // Entrance animation
     int entranceTimer = 180;
@@ -104,31 +126,32 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         enemyBullets.clear();
         playerBullets.clear();
         explosions.clear();
-        enemyDir = 01;
-        enemyMoveInterval = Math.max(10, 40 - (level - 1) * 5); /* controlls the speed in which the enemy goes side to side, 
-                                                                  smaller the number to the right of the comma the faster the 
-                                                                  enemy goes, the larger the number to the left of the comma 
+        enemyDir = 1;
+        enemyMoveInterval = Math.max(10, 40 - (level - 1) * 5); /* controlls the speed in which the enemy goes side to side,
+                                                                  smaller the number to the right of the comma the faster the
+                                                                  enemy goes, the larger the number to the left of the comma
                                                                   the slower the enemy goes */
         entranceTimer = 180; /* controls the duration of the entrance animation */
-        px = W / 2 - 20; /* controls the initial x position of the player */
+        px  = W / 2 - 60; /* player 1 resets to the left of center each level */
+        px2 = W / 2 + 20; /* player 2 resets to the right of center each level */
 
         // 4 rows of enemies, 10 per row
         int cols = 10, rows = 4; /* controls the number of columns and rows of enemies */
-        int startX = 80, startY = -200; /* controls the starting x and y position of the enemies, 
+        int startX = 80, startY = -200; /* controls the starting x and y position of the enemies,
                                     lower the startY the higher the enemy starts, higher the startY the lower the enemy starts */
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
-                int type = (r == 0) ? 2 : (r == 1) ? 1 : 0; /* controls the type of enemy in each row, 
+                int type = (r == 0) ? 2 : (r == 1) ? 1 : 0; /* controls the type of enemy in each row,
                                                 the top row will be type 2, the second row will be type 1, and the bottom two rows will be type 0 */
-                enemies.add(new Enemy(startX + c * 65, startY - r * 55, type)); /* controls the spacing between enemies, 
-                                                lower the number to the right of c the closer the enemies are horizontally, 
+                enemies.add(new Enemy(startX + c * 65, startY - r * 55, type)); /* controls the spacing between enemies,
+                                                lower the number to the right of c the closer the enemies are horizontally,
                                                 higher the number to the right of r the closer the enemies are vertically */
             }
         }
     }
 
     @Override
-    public void actionPerformed(ActionEvent e) { 
+    public void actionPerformed(ActionEvent e) {
         if (state == State.PLAYING) update();
         repaint();
     }
@@ -140,43 +163,59 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
             if (s[1] > H) { s[1] = 0; s[0] = rng.nextInt(W); }
         }
 
-        if (hitFlash > 0) hitFlash--; /* controls the duration of the hit flash effect */
+        if (hitFlash > 0) hitFlash--;   /* controls the duration of the hit flash effect for player 1 */
+        if (hitFlash2 > 0) hitFlash2--; /* controls the duration of the hit flash effect for player 2 */
 
         // Entrance animation
-        if (entranceTimer > -50) { /* the 0 seems to control the start location of 
+        if (entranceTimer > -50) { /* the 0 seems to control the start location of
                                     the enemy, if set to -150 the enemy very close to player */
             entranceTimer--;
-            for (Enemy en : enemies) en.y += 2;/* this enhanced for loop controls where enemy starts, 
-                          lower the number higher the enemy starts, higher the lower and also starts 
+            for (Enemy en : enemies) en.y += 2;/* this enhanced for loop controls where enemy starts,
+                          lower the number higher the enemy starts, higher the lower and also starts
                           ememy too low and ends game immediately */
             return; // don't do game logic yet
         }
 
-        // Move player
+        // Move player 1
         if (left && px > 10)
-            px -= PLAYER_SPEED; /*the number to the right of the > operator is the 
+            px -= PLAYER_SPEED; /*the number to the right of the > operator is the
                                 amount of pixels the player can go to the left */
         if (right && px < W - 50)
-            px += PLAYER_SPEED; /*the number to the far right controls the distance the player 
-                                can move to the right side of screen, the lower the number the 
-                                further to the right or pixel location.  
+            px += PLAYER_SPEED; /*the number to the far right controls the distance the player
+                                can move to the right side of screen, the lower the number the
+                                further to the right or pixel location.
                                 */
 
-        // Shoot
-        if (shooting && shootCooldown <= 0) {  //when shooting  && shot cool down is >= 0 there is no delay between shots 
-            playerBullets.add(new int[]{px + 19, py}); /*the number to the right of px controls the x position of the bullet when shot, 
-                                        lower the number the closer the bullet is to the left side of the ship, 
-                                        higher the number the closer the bullet is to the right side of the ship */
-            shootCooldown = 18; /*controls the cooldown time between shots, 
+        // Move player 2 (only if still alive)
+        if (lives2 > 0) {
+            if (left2  && px2 > 10)     px2 -= PLAYER_SPEED; /* A key moves player 2 left */
+            if (right2 && px2 < W - 50) px2 += PLAYER_SPEED; /* D key moves player 2 right */
+        }
+
+        // Player 1 shoot
+        if (shooting && shootCooldown <= 0) {  //when shooting  && shot cool down is >= 0 there is no delay between shots
+            playerBullets.add(new int[]{px + 19, py, 1}); /*the number to the right of px controls the x position of the bullet when shot,
+                                        lower the number the closer the bullet is to the left side of the ship,
+                                        higher the number the closer the bullet is to the right side of the ship.
+                                        The 1 at the end marks this bullet as belonging to player 1 for scoring. */
+            shootCooldown = 18; /*controls the cooldown time between shots,
                                 lower the number the faster the player can shoot, higher the number the slower the player can shoot */
         }
         if (shootCooldown > 0) shootCooldown--;
+
+        // Player 2 shoot (only if still alive)
+        if (lives2 > 0 && shooting2 && shootCooldown2 <= 0) {
+            playerBullets.add(new int[]{px2 + 19, py2, 2}); /* W key fires player 2's bullet.
+                                                                The 2 marks this bullet as belonging to player 2 for scoring. */
+            shootCooldown2 = 18; /* same cooldown mechanic as player 1 */
+        }
+        if (shootCooldown2 > 0) shootCooldown2--;
 
         // Move player bullets
         playerBullets.removeIf(b -> {
             b[1] -= BULLET_SPEED;
             return b[1] < 0;
-        }); /*this is a lambda function in javascript would be called an arrow function, 
+        }); /*this is a lambda function in javascript would be called an arrow function,
         b is the parameter that represents each bullet in the playerBullets list.
             */
 
@@ -211,7 +250,18 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
             List<Enemy> candidates = new ArrayList<>();
             for (Enemy en : enemies) if (!en.diving) candidates.add(en); // only non-diving enemies can start diving
             if (!candidates.isEmpty()) {
-                candidates.get(rng.nextInt(candidates.size())).startDive(px, py);
+                // Pick a random alive player to dive at.
+                // If both are alive, randomly choose one so each player stays under threat.
+                int targetX, targetY;
+                if (lives > 0 && lives2 > 0) {
+                    if (rng.nextBoolean()) { targetX = px;  targetY = py;  }
+                    else                   { targetX = px2; targetY = py2; }
+                } else if (lives > 0) {
+                    targetX = px;  targetY = py;  /* only player 1 alive, target them */
+                } else {
+                    targetX = px2; targetY = py2; /* only player 2 alive, target them */
+                }
+                candidates.get(rng.nextInt(candidates.size())).startDive(targetX, targetY);
             }
         }
 
@@ -232,7 +282,9 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
                     explosions.add(new Explosion(en.x + 18, en.y + 17));
                     int pts = en.type == 2 ? 150 : en.type == 1 ? 100 : 80;
                     if (en.diving) pts *= 2;
-                    score += pts;
+                    // Award points to whichever player fired the bullet — b[2] holds the player number
+                    if (b[2] == 1) score  += pts;
+                    else           score2 += pts;
                     ei.remove();
                     bi.remove();
                     break;
@@ -240,23 +292,42 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
             }
         }
 
-        // Collision: enemy bullets vs player
+        // Collision: enemy bullets vs players
         Iterator<int[]> ebi = enemyBullets.iterator();
         while (ebi.hasNext()) {
             int[] b = ebi.next();
-            if (b[0] >= px && b[0] <= px + 40 && b[1] >= py && b[1] <= py + 40) {
+            boolean hit = false;
+            // Check player 1 first (only if still alive)
+            if (lives > 0 && b[0] >= px && b[0] <= px + 40 && b[1] >= py && b[1] <= py + 40) {
                 ebi.remove();
-                loseLife();
+                loseLife1();
+                hit = true;
+            }
+            // Check player 2 (only if still alive and bullet not already consumed)
+            if (!hit && lives2 > 0 && b[0] >= px2 && b[0] <= px2 + 40 && b[1] >= py2 && b[1] <= py2 + 40) {
+                ebi.remove();
+                loseLife2();
             }
         }
 
-        // Collision: diving enemies vs player
+        // Collision: diving enemies vs players
         for (Enemy en : enemies) { // check collision with player for diving enemies
-            if (en.x + 10 < px + 38 && en.x + 26 > px &&
+            // Check against player 1
+            if (lives > 0 &&
+                en.x + 10 < px + 38 && en.x + 26 > px &&
                 en.y + 10 < py + 38 && en.y + 26 > py) {
                 explosions.add(new Explosion(en.x + 18, en.y + 17));
                 enemies.remove(en);
-                loseLife();
+                loseLife1();
+                break;
+            }
+            // Check against player 2
+            if (lives2 > 0 &&
+                en.x + 10 < px2 + 38 && en.x + 26 > px2 &&
+                en.y + 10 < py2 + 38 && en.y + 26 > py2) {
+                explosions.add(new Explosion(en.x + 18, en.y + 17));
+                enemies.remove(en);
+                loseLife2();
                 break;
             }
         }
@@ -280,10 +351,18 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         }
     }
 
-    void loseLife() {
+    void loseLife1() {
         lives--;
         hitFlash = 45;
-        if (lives <= 0) state = State.GAME_OVER;
+        /* game ends only when BOTH players are out of lives — if one dies the other keeps playing */
+        if (lives <= 0 && lives2 <= 0) state = State.GAME_OVER;
+    }
+
+    void loseLife2() {
+        lives2--;
+        hitFlash2 = 45;
+        /* game ends only when BOTH players are out of lives — if one dies the other keeps playing */
+        if (lives <= 0 && lives2 <= 0) state = State.GAME_OVER;
     }
 
     @Override // this annotation indicates that we are overriding the paintComponent method from the JPanel class
@@ -340,48 +419,71 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
             g2.drawString(s, (W - g2.getFontMetrics().stringWidth(s)) / 2, 370);
         }
 
-        // Controls
+        // Controls — P1 on the left column, P2 on the right column
         g2.setFont(new Font("Courier New", Font.PLAIN, 15));
-        g2.setColor(new Color(180, 180, 180));
-        String[] ctrl = {"← → : MOVE", "SPACE : FIRE"};
-        for (int i = 0; i < ctrl.length; i++) {
-            g2.drawString(ctrl[i], (W - g2.getFontMetrics().stringWidth(ctrl[i])) / 2, 440 + i * 28);
+        g2.setColor(new Color(30, 140, 255)); /* player 1 controls shown in blue to match their ship */
+        String[] p1ctrl = {"P1 CONTROLS:", "\u2190 \u2192 : MOVE", "SPACE : FIRE"};
+        for (int i = 0; i < p1ctrl.length; i++) {
+            g2.drawString(p1ctrl[i], W/2 - 220, 430 + i * 28);
+        }
+        g2.setColor(new Color(255, 180, 0)); /* player 2 controls shown in gold to match their ship */
+        String[] p2ctrl = {"P2 CONTROLS:", "A D : MOVE", "W : FIRE"};
+        for (int i = 0; i < p2ctrl.length; i++) {
+            g2.drawString(p2ctrl[i], W/2 + 60, 430 + i * 28);
         }
 
         // Draw sample enemy ship types as preview
-        drawEnemyType(g2, W/2 - 130, 530, 2, (System.currentTimeMillis() / 500) % 2 == 0);
-        drawEnemyType(g2, W/2 - 20,  530, 1, false);
-        drawEnemyType(g2, W/2 + 90,  530, 0, false);
+        drawEnemyType(g2, W/2 - 130, 560, 2, (System.currentTimeMillis() / 500) % 2 == 0);
+        drawEnemyType(g2, W/2 - 20,  560, 1, false);
+        drawEnemyType(g2, W/2 + 90,  560, 0, false);
 
         g2.setFont(new Font("Courier New", Font.PLAIN, 13));
         g2.setColor(new Color(255, 220, 80));
-        g2.drawString("150", W/2 - 128, 580);
+        g2.drawString("150", W/2 - 128, 610);
         g2.setColor(new Color(80, 200, 255));
-        g2.drawString("100", W/2 - 18, 580);
+        g2.drawString("100", W/2 - 18, 610);
         g2.setColor(new Color(80, 255, 120));
-        g2.drawString("80",  W/2 + 92, 580);
+        g2.drawString("80",  W/2 + 92, 610);
     }
 
     void drawGame(Graphics2D g2) {
-        // HUD
-        g2.setFont(new Font("Courier New", Font.BOLD, 18));
-        g2.setColor(new Color(255, 220, 0));
-        g2.drawString("SCORE: " + score, 20, 30);
+        // HUD — P1 info on the left, level in the center, P2 info on the right
+        g2.setFont(new Font("Courier New", Font.BOLD, 16));
+        g2.setColor(new Color(30, 140, 255)); /* player 1 HUD drawn in blue to match their ship */
+        g2.drawString("P1 SCORE: " + score, 10, 20);
+        g2.drawString("P1: " + (lives > 0 ? "\u2665 ".repeat(lives).trim() : "DEAD"), 10, 38);
+
         g2.setColor(new Color(0, 220, 255));
-        g2.drawString("LEVEL: " + level, W / 2 - 40, 30);
-        g2.setColor(new Color(255, 80, 80));
-        g2.drawString("LIVES: " + "♥ ".repeat(lives), W - 160, 30); /*  */
+        String lvl = "LEVEL: " + level;
+        FontMetrics fm = g2.getFontMetrics();
+        g2.drawString(lvl, (W - fm.stringWidth(lvl)) / 2, 30);
+
+        g2.setColor(new Color(255, 180, 0)); /* player 2 HUD drawn in gold to match their ship */
+        String p2score = "P2 SCORE: " + score2;
+        String p2lives = "P2: " + (lives2 > 0 ? "\u2665 ".repeat(lives2).trim() : "DEAD");
+        fm = g2.getFontMetrics();
+        g2.drawString(p2score, W - fm.stringWidth(p2score) - 10, 20);
+        g2.drawString(p2lives, W - fm.stringWidth(p2lives) - 10, 38);
 
         // Divider line
         g2.setColor(new Color(50, 50, 80));
-        g2.drawLine(0, 40, W, 40);
+        g2.drawLine(0, 45, W, 45);
 
-        // Player ship (if alive)
+        // Player 1 ship (if alive)
         if (lives > 0) {
             if (hitFlash > 0 && (hitFlash / 5) % 2 == 0) {
-                // Flicker on hit
+                // Flicker on hit — skip drawing this frame to create the flicker effect
             } else {
-                drawPlayer(g2, px, py);
+                drawPlayer(g2, px, py, false); /* false = player 1, draws in blue */
+            }
+        }
+
+        // Player 2 ship (if alive)
+        if (lives2 > 0) {
+            if (hitFlash2 > 0 && (hitFlash2 / 5) % 2 == 0) {
+                // Flicker on hit — skip drawing this frame to create the flicker effect
+            } else {
+                drawPlayer(g2, px2, py2, true); /* true = player 2, draws in gold */
             }
         }
 
@@ -413,23 +515,32 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
             g2.setColor(new Color(255, 80, 80, alpha)); /* controls the color of the flash */
             g2.fillRect(0, 0, W, H); /*the numbers control section of screen that will be filled */
         }
+        if (hitFlash2 > 0) {
+            int alpha = Math.min(80, hitFlash2 * 3); /* same flash mechanic for player 2 */
+            g2.setColor(new Color(255, 80, 80, alpha));
+            g2.fillRect(0, 0, W, H);
+        }
     }
 
-    void drawPlayer(Graphics2D g2, int x, int y) {
+    void drawPlayer(Graphics2D g2, int x, int y, boolean isP2) {
+        /* isP2 controls the color scheme:
+           false = player 1 (blue), true = player 2 (gold).
+           All coordinates are the same — only colors differ. */
+
         // Body
         int[] bx = {x+20, x+5,  x+2,  x+18, x+22, x+38, x+35};/*control look of the ships body x-coordinates */
         int[] by = {y,    y+14, y+38, y+38, y+38, y+38, y+14}; /* this is the y-coordinates for the ship's body */
-        g2.setColor(new Color(30, 140, 255));
+        g2.setColor(isP2 ? new Color(200, 140, 0) : new Color(30, 140, 255)); /* player 1 is blue, player 2 is gold */
         g2.fillPolygon(bx, by, 7);
 
         // Cockpit
-        g2.setColor(new Color(120, 220, 255));
+        g2.setColor(isP2 ? new Color(255, 220, 80) : new Color(120, 220, 255));
         g2.fillOval(x + 12, y + 6, 16, 18);
-        g2.setColor(new Color(200, 240, 255, 180));
+        g2.setColor(isP2 ? new Color(255, 245, 190, 180) : new Color(200, 240, 255, 180));
         g2.fillOval(x + 15, y + 8, 8, 10);
 
         // Wing highlights
-        g2.setColor(new Color(60, 180, 255));
+        g2.setColor(isP2 ? new Color(255, 180, 30) : new Color(60, 180, 255));
         g2.fillPolygon(new int[]{x+5, x+2, x+18}, new int[]{y+14, y+38, y+38}, 3);
         g2.fillPolygon(new int[]{x+35, x+38, x+22}, new int[]{y+14, y+38, y+38}, 3);
 
@@ -443,7 +554,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         }
 
         // Cannon
-        g2.setColor(new Color(180, 200, 255));
+        g2.setColor(isP2 ? new Color(255, 220, 150) : new Color(180, 200, 255));
         g2.fillRect(x + 17, y - 6, 6, 10);
     }
 
@@ -529,20 +640,32 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         FontMetrics fm = g2.getFontMetrics();
         int tx = (W - fm.stringWidth(go)) / 2;
         g2.setColor(new Color(255, 40, 40));
-        g2.drawString(go, tx, 300);
+        g2.drawString(go, tx, 260);
 
-        g2.setFont(new Font("Courier New", Font.BOLD, 26));
-        String sc = "FINAL SCORE: " + score;
+        // Show each player's final score separately
+        g2.setFont(new Font("Courier New", Font.BOLD, 24));
         fm = g2.getFontMetrics();
+        g2.setColor(new Color(30, 140, 255)); /* player 1 score in blue */
+        String p1sc = "P1 SCORE: " + score;
+        g2.drawString(p1sc, (W - fm.stringWidth(p1sc)) / 2, 325);
+
+        g2.setColor(new Color(255, 180, 0)); /* player 2 score in gold */
+        String p2sc = "P2 SCORE: " + score2;
+        g2.drawString(p2sc, (W - fm.stringWidth(p2sc)) / 2, 360);
+
+        // Winner callout — compares both scores to declare a winner
+        g2.setFont(new Font("Courier New", Font.BOLD, 22));
+        fm = g2.getFontMetrics();
+        String winner = (score > score2) ? "P1 WINS!" : (score2 > score) ? "P2 WINS!" : "TIE GAME!";
         g2.setColor(new Color(255, 220, 0));
-        g2.drawString(sc, (W - fm.stringWidth(sc)) / 2, 360);
+        g2.drawString(winner, (W - fm.stringWidth(winner)) / 2, 400);
 
         if ((System.currentTimeMillis() / 600) % 2 == 0) {
             g2.setFont(new Font("Courier New", Font.BOLD, 20));
             g2.setColor(Color.WHITE);
             String r = "PRESS ENTER TO PLAY AGAIN";
             fm = g2.getFontMetrics();
-            g2.drawString(r, (W - fm.stringWidth(r)) / 2, 430);
+            g2.drawString(r, (W - fm.stringWidth(r)) / 2, 450);
         }
     }
 
@@ -551,26 +674,38 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         if (state == State.MENU) {
             if (k == KeyEvent.VK_ENTER) {
                 state = State.PLAYING;
-                score = 0; lives = 3; level = 1; /*control the number of lives initially as the game starts */
+                score = 0; lives = 3; score2 = 0; lives2 = 3; level = 1; /*control the number of lives initially as the game starts */
                 spawnLevel();
             }
         } else if (state == State.PLAYING) {
+            // Player 1 controls
             if (k == KeyEvent.VK_LEFT)  left = true;
             if (k == KeyEvent.VK_RIGHT) right = true;
             if (k == KeyEvent.VK_SPACE) shooting = true;
+            // Player 2 controls
+            if (k == KeyEvent.VK_A) left2     = true;
+            if (k == KeyEvent.VK_D) right2    = true;
+            if (k == KeyEvent.VK_W) shooting2 = true;
         } else if (state == State.GAME_OVER) {
             if (k == KeyEvent.VK_ENTER) {
                 state = State.PLAYING;
-                score = 0; lives = 3; level = 1; /*control the number of lives after game over and restarts */
+                score = 0; lives = 3; score2 = 0; lives2 = 3; level = 1; /*control the number of lives after game over and restarts */
                 spawnLevel();
             }
         }
     }
+
     @Override public void keyReleased(KeyEvent e) {
         int k = e.getKeyCode();
-        if (k == KeyEvent.VK_LEFT)  left = false;
+        // Player 1
+        if (k == KeyEvent.VK_LEFT)  left  = false;
         if (k == KeyEvent.VK_RIGHT) right = false;
         if (k == KeyEvent.VK_SPACE) shooting = false;
+        // Player 2
+        if (k == KeyEvent.VK_A) left2     = false;
+        if (k == KeyEvent.VK_D) right2    = false;
+        if (k == KeyEvent.VK_W) shooting2 = false;
     }
+
     @Override public void keyTyped(KeyEvent e) {}
 }
