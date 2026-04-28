@@ -263,7 +263,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
 
         // Update explosions
         explosions.removeIf(ex -> !ex.alive());
-        for (Explosion ex : explosions) ex.update();
+        for (Explosion ex : explosions) ex.update(); // updatesd explosion animation frames and size
 
         // Win condition
         if (enemies.isEmpty() && explosions.isEmpty()) {
@@ -286,7 +286,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         if (lives <= 0) state = State.GAME_OVER;
     }
 
-    @Override
+    @Override // this annotation indicates that we are overriding the paintComponent method from the JPanel class
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
