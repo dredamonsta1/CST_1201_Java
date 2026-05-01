@@ -4,7 +4,7 @@ import java.util.*;
 import java.util.List;
 import javax.swing.*;
 
-class GamePanel extends JPanel implements ActionListener, KeyListener {
+class GamePanel extends JPanel implements ActionListener, KeyListener { // GamePanel is the main class that handles the game logic and rendering. It extends JPanel to create a custom drawing surface and implements ActionListener and KeyListener to handle game updates and player input.
     static final int W = 800, H = 700; /*static final creates variables that are constants and
                                          cannot be changed after initialization.
                                          W is the width of the game panel. H is the height of the game panel.
@@ -114,7 +114,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     GamePanel() {
         setPreferredSize(new Dimension(W, H));
-        setBackground(Color.BLACK);
+        setBackground(Color.BLACK); // Set the background color of the game panel to black, creating a space-like backdrop for the Galaga game. This enhances the visual theme of the game and provides contrast for the colorful sprites and explosions.
         setFocusable(true);
         addKeyListener(this);
         for (int i = 0; i < stars.length; i++) {
@@ -342,10 +342,14 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         explosions.removeIf(ex -> !ex.alive());
         for (Explosion ex : explosions) ex.update(); // updatesd explosion animation frames and size
 
-        // Win condition
+        // Win condition — clearing level 10 triggers victory, anything below advances to the next level
         if (enemies.isEmpty() && explosions.isEmpty()) {
-            level++;
-            spawnLevel();
+            if (level >= 10) {
+                state = State.WIN; /* all 10 levels cleared — game won */
+            } else {
+                level++;
+                spawnLevel();
+            }
         }
 
         // Enemies reach bottom
@@ -393,8 +397,11 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
             drawMenu(g2);
         } else if (state == State.SELECT) {
             drawSelect(g2); /* player count selection screen shown after the main menu */
-        } else if (state == State.PLAYING || state == State.WIN) {
+        } else if (state == State.PLAYING) {
             drawGame(g2);
+        } else if (state == State.WIN) {
+            drawGame(g2);
+            drawWin(g2); /* overlay the victory screen on top of the game */
         } else if (state == State.GAME_OVER) {
             drawGame(g2);
             drawGameOver(g2);
@@ -726,6 +733,67 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         g2.fillOval(x+19, y+9, 2, 2);
     }
 
+    void drawWin(Graphics2D g2) {
+        /* drawn as an overlay on top of the game screen when state == WIN.
+           shows a victory message and final scores, then prompts to return to the select screen. */
+
+        // Dark overlay so the game behind is still visible but dimmed
+        g2.setColor(new Color(0, 0, 0, 170));
+        g2.fillRect(0, 0, W, H);
+
+        // Victory title with glow effect
+        g2.setFont(new Font("Courier New", Font.BOLD, 62));
+        String win = "YOU WIN!";
+        FontMetrics fm = g2.getFontMetrics();
+        int tx = (W - fm.stringWidth(win)) / 2;
+        g2.setColor(new Color(255, 220, 0, 60)); /* outer glow */
+        g2.drawString(win, tx - 3, 240);
+        g2.drawString(win, tx + 3, 240);
+        g2.setColor(new Color(255, 220, 0)); /* main text */
+        g2.drawString(win, tx, 240);
+
+        // Subtitle
+        g2.setFont(new Font("Courier New", Font.BOLD, 18));
+        g2.setColor(new Color(0, 220, 255));
+        String sub = "ALL 10 LEVELS CLEARED";
+        fm = g2.getFontMetrics();
+        g2.drawString(sub, (W - fm.stringWidth(sub)) / 2, 285);
+
+        // Final scores
+        g2.setFont(new Font("Courier New", Font.BOLD, 24));
+        fm = g2.getFontMetrics();
+        if (playerCount == 1) {
+            /* 1-player — show single final score */
+            g2.setColor(new Color(255, 220, 0));
+            String sc = "FINAL SCORE: " + score;
+            g2.drawString(sc, (W - fm.stringWidth(sc)) / 2, 350);
+        } else {
+            /* 2-player — show both scores and declare a winner */
+            g2.setColor(new Color(30, 140, 255)); /* P1 score in blue */
+            String p1sc = "P1 SCORE: " + score;
+            g2.drawString(p1sc, (W - fm.stringWidth(p1sc)) / 2, 335);
+
+            g2.setColor(new Color(255, 180, 0)); /* P2 score in gold */
+            String p2sc = "P2 SCORE: " + score2;
+            g2.drawString(p2sc, (W - fm.stringWidth(p2sc)) / 2, 368);
+
+            g2.setFont(new Font("Courier New", Font.BOLD, 20));
+            fm = g2.getFontMetrics();
+            String winner = (score > score2) ? "P1 WINS!" : (score2 > score) ? "P2 WINS!" : "TIE GAME!";
+            g2.setColor(new Color(255, 220, 0));
+            g2.drawString(winner, (W - fm.stringWidth(winner)) / 2, 408);
+        }
+
+        // Blinking prompt to return to select screen
+        if ((System.currentTimeMillis() / 600) % 2 == 0) {
+            g2.setFont(new Font("Courier New", Font.BOLD, 20));
+            g2.setColor(Color.WHITE);
+            String r = "PRESS ENTER TO PLAY AGAIN";
+            fm = g2.getFontMetrics();
+            g2.drawString(r, (W - fm.stringWidth(r)) / 2, 470);
+        }
+    }
+
     void drawGameOver(Graphics2D g2) {
         g2.setColor(new Color(0, 0, 0, 160));
         g2.fillRect(0, 0, W, H);
@@ -797,6 +865,10 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
             if (k == KeyEvent.VK_A) left2     = true;
             if (k == KeyEvent.VK_D) right2    = true;
             if (k == KeyEvent.VK_W) shooting2 = true;
+        } else if (state == State.WIN) {
+            if (k == KeyEvent.VK_ENTER) {
+                state = State.SELECT; /* go back to player select after winning */
+            }
         } else if (state == State.GAME_OVER) {
             if (k == KeyEvent.VK_ENTER) {
                 state = State.SELECT; /* go back to player select so they can switch mode on replay */
@@ -816,5 +888,5 @@ class GamePanel extends JPanel implements ActionListener, KeyListener {
         if (k == KeyEvent.VK_W) shooting2 = false;
     }
 
-    @Override public void keyTyped(KeyEvent e) {}
+    @Override public void keyTyped(KeyEvent e) {} // not used but required by the KeyListener interface
 }
